@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Glasshouse — Verify</title>
+  <link rel="stylesheet" href="assets/css/app.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><rect width='16' height='16' rx='3' fill='%230F0526'/><text x='8' y='12' font-size='10' text-anchor='middle' fill='%233DE0FF'>V</text></svg>">
+</head>
+<body>
+  <div class="wrap" style="max-width:720px">
+    <div class="panel deep">
+      <div class="kicker">facilitator only</div>
+      <h1>Verify a victory code</h1>
+      <p class="small muted">Decodes against the session's DAY_SALT. A code from a practice run, a rehearsal, or another session will not verify here.</p>
+    </div>
+
+    <div class="panel">
+      <div class="field"><label for="code">Victory code</label><input type="text" id="code" placeholder="XXXX-XXXX-XXXX-XXXX-XXXX-XXX" autocomplete="off"></div>
+      <div class="field"><label for="vhandle">Student handle (must match the code)</label><input type="text" id="vhandle" placeholder="their handle" autocomplete="off"></div>
+      <div class="row">
+        <div class="field" style="flex:1"><label for="adj">Time adjustment (minutes, ±)</label><input type="number" id="adj" value="0" step="1"></div>
+        <div class="field" style="flex:2"><label for="reason">Reason (shown on the board)</label><input type="text" id="reason" placeholder="e.g. browser cleared, restarted"></div>
+      </div>
+      <button class="btn" id="check">Verify</button>
+    </div>
+
+    <div id="result"></div>
+  </div>
+
+  <script src="core/crypto.js"></script>
+  <script src="config.js"></script>
+  <script src="core/ui.js"></script>
+  <script src="core/state.js"></script>
+  <script src="engine/policy.js"></script>
+  <script src="engine/tools.js"></script>
+  <script src="engine/kaya.js"></script>
+  <script src="engine/trace.js"></script>
+  <script src="scenes/common.js"></script>
+  <script src="scenes/s1.js"></script>
+  <script src="scenes/s2.js"></script>
+  <script src="scenes/s3.js"></script>
+  <script src="scenes/s4.js"></script>
+  <script src="scenes/s5.js"></script>
+  <script src="scenes/s6.js"></script>
+  <script src="scenes/s7.js"></script>
+  <script src="scenes/s8.js"></script>
+  <script>
+    var BOARD_KEY = 'glasshouse.board.v1';
+    function pickVerbal(hash4) {
+      // three distinct scenes chosen deterministically from the code, weighted to
+      // the meatier scenes so the facilitator always has a real question.
+      var pool = ['s3', 's4', 's5', 's6', 's7', 's2', 's1', 's8'];
+      var seedN = hash4[0] + hash4[1] * 3 + hash4[2] * 7 + hash4[3] * 11;
+      var chosen = [];
+      for (var i = 0; i < pool.length && chosen.length < 3; i++) {
+        var id = pool[(seedN + i) % pool.length];
+        if (chosen.indexOf(id) < 0) chosen.push(id);
+      }
+      return chosen;
+    }
+
+    document.getElementById('check').addEventListener('click', function () {
+      var res = document.getElementById('result');
+      UI.clear(res);
+      var code = document.getElementById('code').value.trim();
+      var handle = document.getElementById('vhandle').value.trim();
+      var dec = State.decodeVictoryCode(code);
+      if (!dec.valid) { res.appendChild(UI.el('div', { class: 'banner bad', text: 'Not a readable code: ' + (dec.reason || 'invalid') })); return; }
+
+      var handleOk = handle && State.handleMatchesCode(handle, dec);
+      var clean = dec.checksumOk && !dec.unverified && dec.solvedCount === 8;
+
+      if (!dec.checksumOk) res.appendChild(UI.el('div', { class: 'banner bad', text: 'INVALID CHECKSUM — this code was not issued by this session (wrong DAY_SALT or edited).' }));
+      else if (dec.practice) res.appendChild(UI.el('div', { class: 'banner', style: 'border:2px solid var(--amber);color:var(--amber)', text: 'PRACTICE CODE — not a real finisher.' }));
+      else if (dec.unverified) res.appendChild(UI.el('div', { class: 'banner bad', text: 'INTEGRITY: UNVERIFIED — walk the student through a scene on their screen before adding.' }));
+      else if (dec.solvedCount < 8) res.appendChild(UI.el('div', { class: 'banner bad', text: 'Only ' + dec.solvedCount + '/8 scenes solved — not a finisher.' }));
+      else res.appendChild(UI.el('div', { class: 'banner ok', text: 'CLEAN RUN — checksum valid, all eight solved, integrity OK.' }));
+
+      if (!handleOk) res.appendChild(UI.el('div', { class: 'banner bad', text: handle ? 'Handle does not match the code — a code cannot be passed to a friend.' : 'Enter the student handle to bind the code.' }));
+
+      var adj = parseInt(document.getElementById('adj').value, 10) || 0;
+      var reason = document.getElementById('reason').value.trim();
+      var adjElapsed = Math.max(0, dec.elapsedSec + adj * 60);
+
+      var info = UI.el('div', { class: 'panel' });
+      function row(k, v, cls) { info.appendChild(UI.el('div', { class: 'row' }, [UI.el('div', { style: 'width:160px;color:var(--muted)', text: k }), UI.el('div', { class: cls || '', style: 'font-size:20px;font-weight:700', text: v })])); }
+      row('handle', handle || '(not entered)', handleOk ? 'lime' : 'pink');
+      row('elapsed', UI.fmtTime(dec.elapsedSec * 1000) + (adj ? ' → ' + UI.fmtTime(adjElapsed * 1000) + ' (adj ' + (adj > 0 ? '+' : '') + adj + 'm)' : ''));
+      row('scenes solved', dec.solvedCount + ' / 8');
+      row('arcade points', String(dec.arcadePoints));
+      row('hints taken', String(dec.hintCount));
+      row('integrity', dec.unverified ? 'UNVERIFIED' : 'clean', dec.unverified ? 'pink' : 'lime');
+      res.appendChild(info);
+
+      // verbal check questions for this run
+      var vq = UI.el('div', { class: 'panel' });
+      vq.appendChild(UI.el('h2', { text: 'Ask one of these' }));
+      pickVerbal(dec.handleHash4).forEach(function (id) {
+        var sc = Scenes[id];
+        if (sc) vq.appendChild(UI.el('div', { class: 'seg document' }, [
+          UI.el('div', { class: 'origin', text: id.toUpperCase() + ' · ' + sc.title }),
+          UI.el('div', { text: sc.verbalCheck })
+        ]));
+      });
+      res.appendChild(vq);
+
+      // add to board
+      var addPanel = UI.el('div', { class: 'panel' });
+      var addBtn = UI.el('button', { class: 'btn', text: 'Add to board', disabled: (handleOk && dec.checksumOk && dec.solvedCount === 8 && !dec.practice) ? null : 'disabled' });
+      addBtn.addEventListener('click', function () {
+        var board = [];
+        try { board = JSON.parse(localStorage.getItem(BOARD_KEY) || '[]'); } catch (e) {}
+        board = board.filter(function (b) { return b.handle.toLowerCase() !== handle.toLowerCase(); });
+        board.push({ handle: handle, elapsedSec: adjElapsed, rawElapsedSec: dec.elapsedSec,
+          adjustMin: adj, adjustReason: reason, arcade: dec.arcadePoints, hints: dec.hintCount,
+          solvedCount: dec.solvedCount, integrity: dec.unverified ? 'unverified' : 'clean', at: Date.now() });
+        try { localStorage.setItem(BOARD_KEY, JSON.stringify(board)); } catch (e) {}
+        UI.toast('Added ' + handle + ' to the board. Say the handle out loud!', 'ok', 4000);
+        addBtn.disabled = true;
+      });
+      addPanel.appendChild(addBtn);
+      if (!(handleOk && dec.checksumOk && dec.solvedCount === 8 && !dec.practice))
+        addPanel.appendChild(UI.el('span', { class: 'small muted', style: 'margin-left:10px', text: 'Fix the issues above before adding.' }));
+      addPanel.appendChild(UI.el('p', { class: 'small muted', style: 'margin-top:8px' }, [
+        UI.el('a', { href: 'board.html', target: '_blank', text: 'open the board →' })]));
+      res.appendChild(addPanel);
+    });
+  </script>
+</body>
+</html>
