@@ -13,6 +13,12 @@
     // Session salt — fixed for this single session.
     DAY_SALT: 'glasshouse-2026-10-04-session01',
 
+    // Entry gate. Only the salted SHA-256 hash of the passcode is stored, so the
+    // passcode itself never appears in the source. Checked as
+    // sha256('glasshouse-gate:v1:' + entered) === GATE_HASH.
+    GATE_HASH: 'a23cd44927b751384df27678d70f0effc83007fc6a0474b951bebfb211f630ac',
+    GATE_PREFIX: 'glasshouse-gate:v1:',
+
     // Per-scene secrets. Flags are HMAC(seed, sceneId + ":" + SCENE_SECRET),
     // so nothing solvable is stored in source; a flag only forms at runtime.
     SCENE_SECRETS: {

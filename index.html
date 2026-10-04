@@ -37,6 +37,10 @@
       <div class="field">
         <label for="handle">Handle (letters, digits, dash, underscore — up to 20)</label>
         <input type="text" id="handle" maxlength="20" placeholder="e.g. glass_breaker_7" autocomplete="off">
+      </div>
+      <div class="field">
+        <label for="passcode">Session passcode (ask the facilitator)</label>
+        <input type="password" id="passcode" placeholder="passcode" autocomplete="off">
         <div class="small" id="err" style="color:var(--pink);min-height:18px;margin-top:4px"></div>
       </div>
       <div class="row">
@@ -62,11 +66,16 @@
         note.textContent = 'Resuming "' + existing.handle + '" — or type a new handle to start over.';
         handleInput.value = existing.handle;
       }
+      function gateOk(entered) {
+        return Crypto.sha256Hex(Config.GATE_PREFIX + String(entered)) === Config.GATE_HASH;
+      }
       function go() {
         var err = document.getElementById('err');
         err.textContent = '';
         var v = State.validateHandle(handleInput.value);
         if (!v.ok) { err.textContent = v.error; return; }
+        var pass = document.getElementById('passcode').value;
+        if (!gateOk(pass)) { err.textContent = 'Wrong session passcode — ask the facilitator.'; return; }
         var cur = State.getRun();
         if (cur && cur.handle === v.value) { location.href = 'app.html' + (location.search || ''); return; }
         var practice = !!window.__GH_PRACTICE || /[?&]practice\b/.test(location.search);
@@ -76,6 +85,7 @@
       }
       document.getElementById('start').addEventListener('click', go);
       handleInput.addEventListener('keydown', function (e) { if (e.key === 'Enter') go(); });
+      document.getElementById('passcode').addEventListener('keydown', function (e) { if (e.key === 'Enter') go(); });
     })();
   </script>
 </body>
