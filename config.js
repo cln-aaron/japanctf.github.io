@@ -10,8 +10,8 @@
   'use strict';
 
   var Config = {
-    // >>> CHANGE THIS BEFORE EACH SESSION <<<
-    DAY_SALT: 'glasshouse-2026-POLY-CLASS-REPLACE-ME',
+    // Session salt — fixed for this single session.
+    DAY_SALT: 'glasshouse-2026-10-04-session01',
 
     // Per-scene secrets. Flags are HMAC(seed, sceneId + ":" + SCENE_SECRET),
     // so nothing solvable is stored in source; a flag only forms at runtime.
