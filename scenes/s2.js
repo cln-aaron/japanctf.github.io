@@ -139,9 +139,14 @@
     var stripBtn = UI.el('button', { class: 'btn small', text: 'strip zero-width', onclick: function () { viewer.value = viewer.value.replace(/[​‌‍⁠﻿]/g, ''); viewUpdate(); } });
     var b64Btn = UI.el('button', { class: 'btn small amber', text: 'base64 decode', onclick: function () {
       try {
-        var cleaned = viewer.value.replace(/[​‌‍⁠﻿]/g, '').replace(/[^A-Za-z0-9+/=]/g, '');
-        var dec = global.KAYA._b64decode(cleaned.replace(/=+$/, ''));
-        out.appendChild(UI.el('div', { class: 'small lime', style: 'margin-top:6px', text: 'base64 decode:' }));
+        // strip zero-width, then pick the longest base64-looking token (so the
+        // surrounding prose in the ticket body does not corrupt the decode)
+        var stripped = viewer.value.replace(/[​‌‍⁠﻿]/g, '');
+        var tokens = stripped.match(/[A-Za-z0-9+/]{16,}={0,2}/g) || [];
+        tokens.sort(function (a, b) { return b.length - a.length; });
+        var blob = tokens[0] || stripped.replace(/[^A-Za-z0-9+/=]/g, '');
+        var dec = global.KAYA._b64decode(blob.replace(/=+$/, ''));
+        out.appendChild(UI.el('div', { class: 'small lime', style: 'margin-top:6px', text: 'base64 decode (longest blob):' }));
         out.appendChild(UI.el('div', { class: 'bubble', text: dec || '(not valid base64)' }));
       } catch (e) { UI.toast('decode failed', 'bad'); }
     } });
