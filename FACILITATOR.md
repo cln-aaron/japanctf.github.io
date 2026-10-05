@@ -41,11 +41,6 @@ Run `selftest.html` after changing it — every row must say PASS.
 - Most students will not finish all eight. That is the correct design. Say so at the
   start, and point at the points column so nobody disengages at scene 5.
 
-Say this out loud at the briefing: KAYA is a simulator with a published scoring
-function, not a real model. What transfers is the shape of the attack, the trust
-boundary, the permission thinking, and the habit of reading a trace. What does not
-transfer is the specific payload. Students respect being told this.
-
 ---
 
 ## The verification ritual

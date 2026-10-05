@@ -20,8 +20,3 @@ your browser.
   nothing.
 - When you finish, press **finish**, raise a hand, and show your screen.
 - **Attacking anything outside this lab is out of bounds.**
-
-Finishing all eight is the stretch goal. The board also shows points, so there is
-always something to climb for. KAYA is a simulator with a published scoring
-function — what you are learning is the *shape* of each attack and the habit of
-reading a trace.

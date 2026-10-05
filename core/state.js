@@ -441,10 +441,6 @@
         lines.push('[' + (i + 1) + '] ' + id + ' "' + title + '"  — not solved');
       }
     }
-    lines.push('');
-    lines.push('What transfers from this lab is the shape of the attack and the');
-    lines.push('trust-boundary thinking, not the specific payloads. KAYA is a');
-    lines.push('simulator with a published scoring function, not a real model.');
     return lines.join('\n');
   }
 
