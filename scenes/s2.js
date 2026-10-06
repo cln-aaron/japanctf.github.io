@@ -62,17 +62,21 @@
     };
     // insert planted at a non-obvious position
     tickets.splice(27, 0, planted);
-    return { lab: { tickets: tickets }, marker: marker, b64: b64 };
+    return { lab: { tickets: tickets }, marker: marker, b64: b64, foundPlanted: false };
   }
   function pad(n) { return (n < 10 ? '0' : '') + n; }
 
   function check(runtime, submitted) {
-    return { solved: String(submitted).trim().toUpperCase() === runtime.marker,
-      winningInput: runtime.marker };
+    var right = String(submitted).trim().toUpperCase() === runtime.marker;
+    // require evidence of the in-lab hunt: a marker computed offline (e.g. from
+    // source) cannot score unless the planted ticket was actually found + opened.
+    if (right && !runtime.foundPlanted) return { solved: false, reason: 'not-found', winningInput: runtime.marker };
+    return { solved: right, winningInput: runtime.marker };
   }
 
   function selfSolve(seed) {
     var rt = build(seed);
+    rt.foundPlanted = true; // reference solution opens the planted ticket
     var res = check(rt, rt.marker);
     return { solved: res.solved, winningInput: rt.marker };
   }
@@ -104,6 +108,7 @@
       });
     }
     function openTicket(t) {
+      if (t.planted) api.runtime.foundPlanted = true; // evidence: the hunt happened in-lab
       UI.clear(openBox);
       openBox.appendChild(UI.el('div', { class: 'kicker', text: t.id + '  ·  ' + t.sender + '  ·  ' + t.time }));
       openBox.appendChild(UI.el('div', { class: 'small muted', text: 'subject: ' + t.subject }));
@@ -163,6 +168,7 @@
       onSubmit: function (val) {
         var r = check(api.runtime, val);
         if (r.solved) { api.solve(api.runtime.marker); if (api.__refreshFlag) api.__refreshFlag(); return { ok: true }; }
+        if (r.reason === 'not-found') return { ok: false, msg: 'Find and open the planted ticket first — hunt the anomaly, do not guess the marker.' };
         return { ok: false };
       }, okMsg: 'Marker accepted — scene solved.'
     }));

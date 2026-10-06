@@ -60,17 +60,21 @@
       'import fmt from "date-fns-sg";\n' +
       'import extra from "tiga-loger";  // suggested by the assistant\n';
 
-    return { lab: { registry: registry, snippet: snippet }, marker: marker, ghost: 'tiga-loger' };
+    return { lab: { registry: registry, snippet: snippet }, marker: marker, ghost: 'tiga-loger', inspectedGhost: false };
   }
 
   function check(runtime, submitted) {
     var v = String(submitted).trim().toUpperCase();
-    var ok = v === runtime.marker || v === runtime.marker.replace(/^GHOST-/, '');
-    return { solved: ok, winningInput: runtime.marker };
+    var right = v === runtime.marker || v === runtime.marker.replace(/^GHOST-/, '');
+    // require evidence the ghost package's install script was opened in-lab, so a
+    // token computed offline cannot score without the supply-chain investigation.
+    if (right && !runtime.inspectedGhost) return { solved: false, reason: 'not-inspected', winningInput: runtime.marker };
+    return { solved: right, winningInput: runtime.marker };
   }
 
   function selfSolve(seed) {
     var rt = build(seed);
+    rt.inspectedGhost = true; // reference solution opens the install script
     return { solved: check(rt, rt.marker).solved, winningInput: rt.marker };
   }
 
@@ -117,6 +121,7 @@
       regOut.appendChild(UI.el('div', { class: 'small', text: 'files: ' + p.files.join(', ') }));
       if (p.installScript) {
         var openBtn = UI.el('button', { class: 'btn small amber', style: 'margin-top:8px', text: 'open install.js', onclick: function () {
+          api.runtime.inspectedGhost = true; // evidence: the investigation happened in-lab
           scriptView.classList.remove('hidden');
           UI.clear(scriptOut);
           scriptOut.appendChild(UI.el('pre', { class: 'bubble', style: 'white-space:pre-wrap', text: p.installScript }));
@@ -145,6 +150,7 @@
       onSubmit: function (val) {
         var r = check(api.runtime, val);
         if (r.solved) { api.solve(api.runtime.marker); if (api.__refreshFlag) api.__refreshFlag(); return { ok: true }; }
+        if (r.reason === 'not-inspected') return { ok: false, msg: 'Open the suspicious package\'s install script first — identify it, do not guess the token.' };
         return { ok: false };
       }, okMsg: 'Marker accepted — scene solved.'
     }));

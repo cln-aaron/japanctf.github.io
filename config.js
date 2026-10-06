@@ -19,18 +19,12 @@
     GATE_HASH: 'a23cd44927b751384df27678d70f0effc83007fc6a0474b951bebfb211f630ac',
     GATE_PREFIX: 'glasshouse-gate:v1:',
 
-    // Per-scene secrets. Flags are HMAC(seed, sceneId + ":" + SCENE_SECRET),
-    // so nothing solvable is stored in source; a flag only forms at runtime.
-    SCENE_SECRETS: {
-      s1: 'glass-leak-77',
-      s2: 'ticket-anomaly-43',
-      s3: 'badge-boundary-19',
-      s4: 'filter-gap-58',
-      s5: 'trifecta-chain-91',
-      s6: 'well-poison-12',
-      s7: 'ghost-pkg-64',
-      s8: 'lockdown-capstone-30'
-    },
+    // Per-scene secrets, packed (see Crypto.unpackObj). Flags are
+    // HMAC(seed, sceneId + ":" + SCENE_SECRET); keeping the secrets out of
+    // readable plaintext means a view-source of this file alone reveals nothing
+    // usable. This is obfuscation, not encryption — the real anti-cheat controls
+    // are the in-lab solve gating and the facilitator verbal checks.
+    SCENE_SECRETS: global.Crypto.unpackObj('1c4a5e414359494a1a505e444b5f0458081f5502474b4a5e42435949591f524652121e00570c5f03591c4a5c1e524d41181e540b0f550757065c4e500d400b03095f094c52520f5a135e034409435f0a5e1650174a0f4c004c56530f5a135e024409434d115b04500613090013090202435b081c154a11120f41084042000b0400000e0a1842181c1c05441f434a54105817020f075e044c13004a5b0719154a111201410840590a0403491f160d464e17415e43095d041450024048'),
 
     // Par times in seconds. Speed bonus decays to zero over twice par.
     PAR: {

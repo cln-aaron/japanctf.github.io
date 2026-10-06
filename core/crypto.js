@@ -191,7 +191,27 @@
     return new Uint8Array(out);
   }
 
+  // ---- lightweight object packing (obfuscation, NOT encryption) -----------
+  // Keeps the scene secrets out of readable plaintext in config.js so a casual
+  // view-source or "paste config.js into a chatbot" yields an opaque hex blob.
+  // The key lives here, not in config.js, so that file alone reveals nothing.
+  var PACK_KEY = 'gh-pack-v1-7f3a9c2b5e';
+  function packObj(obj) {
+    var b = utf8Bytes(JSON.stringify(obj));
+    var o = new Uint8Array(b.length);
+    for (var i = 0; i < b.length; i++) o[i] = b[i] ^ PACK_KEY.charCodeAt(i % PACK_KEY.length);
+    return bytesToHex(o);
+  }
+  function unpackObj(hex) {
+    var b = hexToBytes(hex);
+    var s = '';
+    for (var i = 0; i < b.length; i++) s += String.fromCharCode(b[i] ^ PACK_KEY.charCodeAt(i % PACK_KEY.length));
+    return JSON.parse(s);
+  }
+
   global.Crypto = {
+    packObj: packObj,
+    unpackObj: unpackObj,
     sha256Hex: sha256Hex,
     sha256Bytes: sha256Bytes,
     hmacHex: hmacHex,
